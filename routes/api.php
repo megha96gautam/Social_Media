@@ -21,4 +21,7 @@ Route::group(['middleware' => 'checkHeader'], function () {
 	
 	/*login*/
 	Route::post('login', 'Api\UserController@login');
+
+	/*registration*/
+	Route::post('register', 'Api\UserController@register');
 });
