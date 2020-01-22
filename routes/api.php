@@ -24,4 +24,19 @@ Route::group(['middleware' => 'checkHeader'], function () {
 
 	/*registration*/
 	Route::post('register', 'Api\UserController@register');
+
+	/*otp verification*/
+	Route::post('verifyotp', 'Api\UserController@verifyotp');
+
+	/*forgot password*/
+	Route::post('forgotpassword', 'Api\UserController@forgotpassword');
+
+	/*change password*/
+	Route::post('changepassword', 'Api\UserController@changepassword');
+
+	/*resend otp*/
+	Route::post('resendotp', 'Api\UserController@resendotp');
+
+	/*update user profile*/
+	Route::post('updateprofile', 'Api\UserController@updateprofile');	
 });
