@@ -584,5 +584,7 @@ public $failureStatus = false;
         }else{
             return response()->json(['status'=>$this->failureStatus, 'msg' => 'Your account is not active']);
         }
-    }     
+    }
+
+        
 }

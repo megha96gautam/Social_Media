@@ -38,5 +38,7 @@ Route::group(['middleware' => 'checkHeader'], function () {
 	Route::post('resendotp', 'Api\UserController@resendotp');
 
 	/*update user profile*/
-	Route::post('updateprofile', 'Api\UserController@updateprofile');	
+	Route::post('updateprofile', 'Api\UserController@updateprofile');
+
+
 });
