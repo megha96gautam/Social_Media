@@ -27,9 +27,9 @@ public $failureStatus = false;
             'password' => 'required', 
         ],
         [
-            'email.required' => 'Email is required',
+            'email.required' => 'required email',
             'email.email'     => 'Please enter valid email',
-            'password.required' =>  'Password is required',
+            'password.required' =>  'required password',
         ]
         );
         if ($validator->fails()) {
@@ -73,13 +73,19 @@ public $failureStatus = false;
                     //$data->device_token = $request->device_token; 
                     //$data->save();
                     $status = $this->successStatus; 
-                    $msg = Auth::user()->name . ' Login successfully';                   
+                    $msg = Auth::user()->fullname . ' Login successfully';                   
                 }
 
                 if(!empty($user->profile_image)){
-                    $img = url('public/uploads/profile_img').'/'.$user->profile_image;
+                    $img = url('public/uploads/profile_image').'/'.$user->profile_image;
                 }else{
                     $img = url('resources/assets/images/blank_user.jpg');
+                }
+
+                if(!empty($user->cover_image)){
+                    $cover_img = url('public/uploads/cover_image').'/'.$user->cover_image;
+                }else{
+                    $cover_img = url('resources/assets/images/blank_image.jpg');
                 }
                 
                 return response()->json([
@@ -88,7 +94,8 @@ public $failureStatus = false;
                         'response' => 
                             [
                                 'user_id'           => $user->id,
-                                'fullname'          => $user->name.' '.$user->lname,
+                                'fullname'          => $user->fullname,
+                                'username'          => $user->username,
                                 'email'             => $user->email,
                                 'user_mobile'       => $user->user_mob,
                                 'gender'            => $user->user_gender,
@@ -96,7 +103,13 @@ public $failureStatus = false;
                                 'user_city'         => $user->user_city,
                                 'address'      => $user->user_address,
                                 'user_status'       => $user->user_status,
-                                'profile_img'       => $img,
+                                'profile_image'       => $img,
+                                'cover_image'       => $cover_img,
+                                'works_at'   => $user->works_at,
+                                'study_at'   => $user->study_at,
+                                'relation_status' => $user->relation_status,
+                                'languages_known' => $user->languages_known,
+                                'bio'             => $user->bio,
                                 //'user_otp'       => $user->user_otp,
                                 'oauth_provider'          => $user->oauth_provider,
                                 'devicetype'       => $user->devicetype,
@@ -124,7 +137,11 @@ public $failureStatus = false;
     public function register(Request $request) 
     {   
         $validator = Validator::make($request->all(), [ 
-            'username'  => 'required', 
+            'fullname'  => 'required', 
+            'username'  => [ 'required',
+                            Rule::unique('users')->where(function ($query) {
+                            return $query->where('user_status','!=', 2);
+                            }) ], 
             'email' => [
                     'required',
                     'email',
@@ -147,25 +164,27 @@ public $failureStatus = false;
             'gender'  =>  'required'  
         ],
         [   
-            'username.required'         => 'Username is required',
+            'username.required'         => 'required username',
+            'username.unique'           => 'Username already exist',
+            'fullname.required'         => 'required fullname',
             
-            'email.required'            => 'Email is required',
+            'email.required'            => 'required email',
             'email.email'               => 'Please enter valid email address',
             'email.unique'              => 'Email already exist',
             
-            'password.required'         => 'Password is required',
+            'password.required'         => 'required password',
             'password.min'              => 'Please eneter atleast 8 characters',
             'password.regex'            => 'Password must contain a lowercase letters, uppercase letter,  special characters, numbers',
             
-            'mobile.required'           => 'Mobile no. is required',
+            'mobile.required'           => 'required mobile',
             'mobile.min'                => 'Mobile no is invalid',
             'mobile.max'                => 'Mobile no is invalid',
 
             'date_of_birth.before'      => 'User must be 18 years old',
-            'date_of_birth.required'    => 'Date of Birth is required',
+            'date_of_birth.required'    => 'required date_of_birth',
 
-            'address.required'     => 'Address is required',
-            'gender.required'      => 'Gender is required'
+            'address.required'          => 'required address',
+            'gender.required'           => 'required gender'
 
         ]);
 
@@ -178,10 +197,10 @@ public $failureStatus = false;
         }
 
         $name = '';
-        if ($request->hasFile('profile_img')) {
-            $image = $request->file('profile_img');
+        if ($request->hasFile('profile_image')) {
+            $image = $request->file('profile_image');
             $name = time().'.'.$image->getClientOriginalExtension();
-            $destinationPath = public_path('/uploads/profile_img');         
+            $destinationPath = public_path('/uploads/profile_image');         
             $imagePath = $destinationPath. '/'.  $name;
             $image->move($destinationPath, $name);
         }
@@ -190,7 +209,8 @@ public $failureStatus = false;
         $otp                    = rand(pow(10, $digits-1), pow(10, $digits)-1);
         $forminput              = $request->all();
         $user                   = new User; 
-        $user->name         = $forminput['username'];
+        $user->username         = $forminput['username'];
+        $user->fullname         = $forminput['fullname'];
         $user->email            = $forminput['email'];
 
         $user->password         = Hash::make($forminput['password']);
@@ -212,16 +232,22 @@ public $failureStatus = false;
 
         $user->api_token      = isset($forminput['api_token'])?$forminput['api_token']:'';
 
+        if(!empty($user->cover_image)){
+            $cover_img = url('public/uploads/cover_image').'/'.$user->cover_image;
+        }else{
+            $cover_img = url('resources/assets/images/blank_image.jpg');
+        }
+
         if($user->save()){
              $email_content = DB::Table('email_template')->where('eid', 1)->first();
             $searchArray = array("{user_name}", "{user_email}","{user_mobile}", "{user_otp}", "{site_url}");
           //  $verifyurl = "<a href=".url('verify/email').'/'.$user->vrfn_code.">Verify Email</a>";
-            $replaceArray = array($user->name, $forminput['email'], $user->user_mob, $user->user_otp, url('/'));
+            $replaceArray = array($user->fullname, $forminput['email'], $user->user_mob, $user->user_otp, url('/'));
 
             $content = str_replace($searchArray, $replaceArray, $email_content->content);
             
             $data = [
-                'name'      => $user->name,
+                'name'      => $user->fullname,
                 'email'     => $forminput['email'],                    
                 'vrfn_code' => $user->vrfn_code,         
                 'subject'   => $email_content->subject,
@@ -236,10 +262,12 @@ public $failureStatus = false;
                     'response'=>
                         [    
                             'user_id'           => $user->id,
-                            'username'              => $user->name,
+                            'username'              => $user->username,
+                            'fullname'              => $user->fullname,
                             'email'             => $user->email,
                             'address'             => $user->user_address,
-                            'profile_image'       => !empty($name)?url('public/uploads/profile_img').'/'.$name:url('resources/assets/images/blank_user.jpg'),
+                            'profile_image'       => !empty($name)?url('public/uploads/profile_image').'/'.$name:url('resources/assets/images/blank_user.jpg'),
+                            'cover_image'       => $cover_img,
                             'mobile'            => $user->user_mob,
                             'gender'            => $user->user_gender,
                             'date_of_birth'     => $user->dob,
@@ -267,9 +295,9 @@ public $failureStatus = false;
             'user_role' => [ 'required' ]          
         ],
         [   
-            'email.required'   => 'Email is required',
+            'email.required'   => 'required email',
             'email.email'      =>  'Please enter valid email',
-            'user_role.required' => 'User role is required'
+            'user_role.required' => 'required user_role'
         ]);
         if ($validator->fails()) { 
             $messages = $validator->messages();
@@ -294,11 +322,11 @@ public $failureStatus = false;
 
                 $searchArray = array("{user_email}","{user_name}",
                     "{user_otp}", "{site_url}");
-                $replaceArray = array($user->email, $user->name, $otp, url('/'));
+                $replaceArray = array($user->email, $user->fullname, $otp, url('/'));
                 $content = str_replace($searchArray, $replaceArray, $email_content->content);
                 
                 $data = [
-                    'name'      => $user->name,
+                    'name'      => $user->fullname,
                     'email'     => $user->email,       
                     'subject'   => $email_content->subject,
                     'content'   => $content,
@@ -322,12 +350,18 @@ public $failureStatus = false;
         $forminput =  $request->all();
         $validator = Validator::make($request->all(), [ 
                 'otp'  => 'required|min:6', 
-                'type'  => 'required',          
+                'type'  => 'required',
+                'email' =>[
+                    'required',
+                    'email',
+                ],          
             ],
             [   
-                'otp.required'     => 'OTP is required',
+                'otp.required'     => 'required otp',
                 'otp.min'          => 'Please enter at least 6 characters',
-                'type.required'    => 'Verify type is required'
+                'type.required'    => 'Verify type is required',
+                'email.required'   => 'required email',
+                'email.email'      =>  'Please enter valid email',
             ]
         );
         
@@ -342,7 +376,8 @@ public $failureStatus = false;
         /*type == 'forgotpassword'*/
         if($forminput['type'] == 1){
            
-            $user = User::where('forgot_pass_otp', $forminput['otp'])->where('user_status', '!=', 0)->first();
+            $user = User::where('forgot_pass_otp', $forminput['otp'])->where('user_status', '!=', 0)->where('email', $request->email)->first();
+
             if((!empty($user))){
                 if($user->user_status == 1){
                     $user->forgot_pass_otp = null;
@@ -359,7 +394,7 @@ public $failureStatus = false;
         }/*type= [login otp verification]*/
         else{
            
-            $user = User::where('user_otp', $forminput['otp'])->where('user_status', '=', 0)->first();
+            $user = User::where('user_otp', $forminput['otp'])->where('user_status', '=', 0)->where('email', $request->email)->first();
             if((!empty($user))){
                 $user->user_status = 1;                
                 $user->user_otp = null;
@@ -368,7 +403,7 @@ public $failureStatus = false;
                 $user->save();
                 return response()->json(['status'=>$this->successStatus, 'msg' => 'Your account has been verified successfully. Please Login', 'response'=>['user_id' => $user->id]]); 
             }else{
-                return response()->json(['status'=>$this->failureStatus, 'msg' => 'Please enter correct OTP']); 
+                return response()->json(['status'=>$this->failureStatus, 'msg' => 'Please enter correct email or OTP']); 
             }
         }
     }
@@ -384,9 +419,9 @@ public $failureStatus = false;
             ],   
         ],
         [               
-            'email.required'            => 'Email is required',
+            'email.required'            => 'required email',
             'email.email'               => 'Please enter valid email',
-            'new_password.required'     => 'New Password is required',
+            'new_password.required'     => 'required new_password',
             'new_password.min'          => 'Please eneter atleast 8 characters',
             'new_password.regex'        => 'Password must contain a lowercase letters, uppercase letter,  special characters, numbers',
             
@@ -434,9 +469,9 @@ public $failureStatus = false;
                 'type'      =>  'required'                       
             ],
             [   
-                'email.required'   =>  'Email is required',
+                'email.required'   =>  'required email',
                 'email.email'      =>  'Please enter valid email',
-                'type'              => 'Type is required'  
+                'type'              => 'required type'  
             ]
             );
             if ($validator->fails()) { 
@@ -459,11 +494,11 @@ public $failureStatus = false;
                        //////////Forgot opt////////////
                     $email_content = DB::Table('email_template')->where('eid', 6)->first();
                     $searchArray = array("{user_name}", '{user_otp}','{user_email}', "{site_url}");
-                    $replaceArray = array($user->name, $otp,$user->email , url('/'));
+                    $replaceArray = array($user->fullname, $otp,$user->email , url('/'));
                     $content = str_replace($searchArray, $replaceArray, $email_content->content);
                     
                     $data = [
-                        'name'      => $user->name,
+                        'name'      => $user->fullname,
                         'email'     => $user->email,       
                         'subject'   => $email_content->subject,
                         'content'   => $content,
@@ -476,7 +511,8 @@ public $failureStatus = false;
                             'msg' => 'OTP sent successully', 
                             'response' => [
                                 'user_id'           => $user->id,
-                                'username'          => $user->name,
+                                'username'          => $user->username,
+                                'fullname'          => $user->fullname,
                                 'email'             => $user->email,
                                 'address'           => $user->user_address,
                                 'mobile'            => $user->user_mob,
@@ -502,7 +538,8 @@ public $failureStatus = false;
     public function updateprofile(Request $request){
         $forminput = $request->all();
         $validator = Validator::make($request->all(), [ 
-            'username'  => 'required', 
+            //'username'  => 'required', 
+            'fullname'  => 'required', 
             'gender' => 'required',
             'date_of_birth' => 'required|date|before:-18 years',
             'address' => 'required',
@@ -513,12 +550,13 @@ public $failureStatus = false;
             ], 
         ],
         [   
-            'username.required'         => 'Username is required',
-            'gender.required'           => 'Gender is required',
+            //'username.required'         => 'required username',
+            'fullname.required'         => 'required fullname',
+            'gender.required'           => 'required gender',
             'date_of_birth.before'      => 'User must be 18 years old',
-            'date_of_birth.required'    => 'Date of Birth is required',            
-            'address.required'          => 'Address is required',
-            'mobile.required'           => 'Mobile no. is required',
+            'date_of_birth.required'    => 'required date_of_birth',            
+            'address.required'          => 'required address',
+            'mobile.required'           => 'required mobile',
             'mobile.min'                => 'Mobile no is invalid',
             'mobile.max'                => 'Mobile no is invalid',
 
@@ -534,18 +572,34 @@ public $failureStatus = false;
         $user = User::where('id', $forminput['user_id'])->where('user_status',1)->first();
         if( !empty($user) ){            
             $name = '';
-            if ($request->hasFile('profile_img')) {            
-                $image = $request->file('profile_img');
+            if ($request->hasFile('profile_image')) {            
+                $image = $request->file('profile_image');
                 $name = time().'.'.$image->getClientOriginalExtension();
-                $destinationPath = public_path('/uploads/profile_img/');         
+                $destinationPath = public_path('/uploads/profile_image/');         
                 $imagePath = $destinationPath. '/'.  $name;
                 $image->move($destinationPath, $name);
             }
 
-            $user->name             = $forminput['username'];
+            $cover_name = '';
+            if ($request->hasFile('cover_image')) {            
+                $cover_image = $request->file('cover_image');
+                $cover_name = time().'.'.$image->getClientOriginalExtension();
+                $coverDestinationPath = public_path('/uploads/cover_image/');         
+                $coverImagePath = $coverDestinationPath. '/'.  $cover_name;
+                $cover_image->move($coverDestinationPath, $cover_name);
+            }
+
+            //$user->username             = $forminput['username'];
+            $user->fullname             = $forminput['fullname'];
             $user->user_gender      = isset($forminput['gender'])?$forminput['gender']:'';
             $user->user_address      = isset($forminput['address'])?$forminput['address']:'';
             
+            $user->works_at             = $forminput['works_at'];
+            $user->study_at             = $forminput['study_at'];
+            $user->relation_status             = $forminput['relation_status'];
+            $user->languages_known             = $forminput['languages_known'];
+            $user->bio             = $forminput['bio'];
+
             $user->user_mob         = isset($forminput['mobile'])?$forminput['mobile']:$user->user_mob;
             $user->dob    = $forminput['date_of_birth'];
             
@@ -553,28 +607,50 @@ public $failureStatus = false;
                 $user->profile_image  = $name;
             }
 
+            if(!empty($cover_name)){
+                $user->cover_image  = $cover_name;
+            }
+
             if($user->save()){
+
                 $img = '';
                 if(!empty($user->profile_image)){
-                    $img = url('public/uploads/profile_img').'/'.$user->profile_image;
+                    $img = url('public/uploads/profile_image').'/'.$user->profile_image;
                 }else{
                     $img = url('resources/assets/images/blank_user.jpg');
                 }
+
+                $cover_img = '';
+                if(!empty($user->cover_image)){
+                    $cover_img = url('public/uploads/cover_image').'/'.$user->profile_image;
+                }else{
+                    $cover_img = url('resources/assets/images/blank_image.jpg');
+                }
+
                 return response()->json(
                     [
                         'status'=>$this->successStatus, 
                         'msg' => 'Your profile updated successfully', 
                         'response'=> [
                             'user_id'    =>  $user->id, 
-                            'username' => $user->name, 
+                            'username' => $user->username,
+                            'fullname' => $user->fullname, 
                             'email' => $user->email, 
                             'mobile' => $user->user_mob,
-                            'profile_img' => $img, 
+                            'profile_image' => $img,
+                            'cover_image' => $cover_img, 
                             'gender' => $user->user_gender,   
                             'date_of_birth' => $user->dob,
                             'address' => $user->user_address, 
                             'email_verified' => $user->email_verified,
                             'user_status' => $user->user_status,
+
+                            'works_at'   => $user->works_at,
+                            'study_at'   => $user->study_at,
+                            'relation_status' => $user->relation_status,
+                            'languages_known' => $user->languages_known,
+                            'bio'             => $user->bio
+
                         ]
                     ]                    
                 ); 
@@ -586,5 +662,133 @@ public $failureStatus = false;
         }
     }
 
+    /** 
+     * details api 
+     * 
+     * @return \Illuminate\Http\Response 
+     */ 
+    public function getuserdetails(Request $request) 
+    { 
+        $validator = Validator::make($request->all(), [ 
+            'user_id' => 'required' 
+        ]);
+        if ($validator->fails()) {
+            $messages = $validator->messages();
+            foreach ($messages->all() as $message)
+            {   
+                return response()->json(['status'=>$this->failureStatus,'msg'=>$message]);            
+            }
+        }
+        $user = User::where('id', $request->user_id)->where('user_status', 1)->first();
+        if(!empty($user) ){
+            $img = '';
+            if(!empty($user->profile_image)){
+                $img = url('public/uploads/profile_image').'/'.$user->profile_image;
+            }else{
+                $img = url('resources/assets/images/blank_user.jpg');
+            }
+
+            $cover_img = '';
+            if(!empty($user->cover_image)){
+                $cover_img = url('public/uploads/cover_image').'/'.$user->profile_image;
+            }else{
+                $cover_img = url('resources/assets/images/blank_image.jpg');
+            }
+
+            $detail = array(
+                'user_id'           => $user->id,
+                'username'          => $user->username,
+                'fullname'          => $user->fullname,
+                'email'             => $user->email,
+                'mobile'            => $user->user_mob,
+                'gender'            => $user->user_gender,
+                'profile_image'     => $img,
+                'cover_image'       => $cover_img,
+                'works_at'   => $user->works_at,
+                'study_at'   => $user->study_at,
+                'relation_status' => $user->relation_status,
+                'languages_known' => $user->languages_known,
+                'bio'             => $user->bio, 
+                'date_of_birth'     => $user->dob,
+                'email_verified'   => $user->email_verified,
+                'user_status'       => $user->user_status,
+                'oauth_provider'   => $user->oauth_provider,
+                'devicetype'       => $user->devicetype,
+                'deviceid'       => $user->deviceid,
+                'api_token'      => $user->api_token,
+
+            );
+            return response()->json([
+                'status'=>$this->successStatus, 
+                'msg' => 'User details fetched successfully', 
+                'response' => $detail
+            ]);
+
+        }else{
+            return response()->json(['status'=>$this->failureStatus, 'msg' => 'Your Account does not exist']);
+        }
+    }
+
+    /** 
+    * blockuser api 
+    * 
+    * @return \Illuminate\Http\Response 
+    */ 
+    public function blockuser(Request $request){
+        $forminput =  $request->all();
+        $validator = Validator::make($request->all(), [ 
+                'user_id'  => 'required',
+                'block_user_id'  => 'required',
+                'block_status'  => 'required'
+            ],
+            [   
+                'user_id.required'     => 'required user_id',
+                'block_user_id.required'     => 'required block_user_id',
+                'block_status.required'     => 'required block_status',
+
+            ]
+        );
         
+        if ($validator->fails()) { 
+            $messages = $validator->messages();
+            foreach ($messages->all() as $message)
+            {   
+                return response()->json(['status'=>$this->failureStatus,'msg'=>$message]);            
+            }            
+        }
+
+        $block_user_id  = $forminput["block_user_id"];
+        $user_id        = $forminput["user_id"];
+
+        if( $forminput['block_status'] == 1){
+
+            $select_query=DB::select("SELECT count(*) as count from block_user where block_user_id='$block_user_id' AND user_id='$user_id'");
+
+            if( $select_query[0]->count > 0 ){
+                $block = DB::table('block_user')->where('user_id',$forminput['user_id'] )->where( 'block_user_id',$forminput['block_user_id'] )->update( [ 'blockedDate' =>date('Y-m-d'),
+                          'block_status' => 1, 'unblockedDate' => null ] );
+            }else{
+                $block = DB::table('block_user')->insert(
+                            [
+                              'user_id' => $user_id,
+                              'block_user_id' => $block_user_id,
+                              'blockedDate' =>date('Y-m-d'),
+                              'block_status' => 1
+                            ]
+                );
+            }
+            $msg = 'User blocked successfully';
+
+        }else{
+            $block = DB::table('block_user')->where('user_id',$forminput['user_id'] )->where( 'block_user_id',$forminput['block_user_id'] )->update( [ 'unblockedDate' =>date('Y-m-d'),
+                          'block_status' => 0, 'blockedDate' => null ] );
+             $msg = 'User unblocked successfully';
+        }
+
+        if( $block ){
+            return response()->json(['status'=>$this->successStatus, 'msg' => $msg ]);
+        }else{
+            return response()->json(['status'=>$this->failureStatus, 'msg' => 'Something went wrong']); 
+        }
+    }     
 }

@@ -40,5 +40,19 @@ Route::group(['middleware' => 'checkHeader'], function () {
 	/*update user profile*/
 	Route::post('updateprofile', 'Api\UserController@updateprofile');
 
+	/*update user profile*/
+	Route::post('getuserdetails', 'Api\UserController@getuserdetails');
 
+	/*block user*/
+	Route::post('blockuser', 'Api\UserController@blockuser');
+
+	/*follow user request*/
+	Route::post('sendfollowrequest', 'Api\FollowController@sendfollowrequest');	
+
+	/*get followers list*/
+	Route::post('followerlist', 'Api\FollowController@getfollowerslist');	
+
+	/*get following list*/
+	Route::post('followinglist', 'Api\FollowController@getfollowinglist');	
+		
 });
