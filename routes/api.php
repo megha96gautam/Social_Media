@@ -53,6 +53,9 @@ Route::group(['middleware' => 'checkHeader'], function () {
 	Route::post('followerlist', 'Api\FollowController@getfollowerslist');	
 
 	/*get following list*/
-	Route::post('followinglist', 'Api\FollowController@getfollowinglist');	
+	Route::post('followinglist', 'Api\FollowController@getfollowinglist');
+
+	/*create group*/
+	Route::post('creategroup', 'Api\GroupController@creategroup');		
 		
 });

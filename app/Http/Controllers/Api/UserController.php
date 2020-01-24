@@ -239,6 +239,17 @@ public $failureStatus = false;
         }
 
         if($user->save()){
+
+            DB::table('user_otpdetail')->insert(
+                    [
+                      'user_id' =>  $user->id,
+                      'otp_for' =>  'registration',
+                      'user_mob' => $user->user_mob,
+                      'user_email' => $user->email,
+                      'otp_number' =>  $user->user_otp,
+                    ]
+            );
+
              $email_content = DB::Table('email_template')->where('eid', 1)->first();
             $searchArray = array("{user_name}", "{user_email}","{user_mobile}", "{user_otp}", "{site_url}");
           //  $verifyurl = "<a href=".url('verify/email').'/'.$user->vrfn_code.">Verify Email</a>";
@@ -314,6 +325,16 @@ public $failureStatus = false;
                 $otp =  rand(pow(10, $digits-1), pow(10, $digits)-1);
                 $user->forgot_pass_otp   = $otp;
                 $user->save();
+
+                DB::table('user_otpdetail')->insert(
+                    [
+                      'user_id' =>  $user->id,
+                      'otp_for' =>  'forgotpassword',
+                      'user_mob' => $user->user_mob,
+                      'user_email' => $user->email,
+                          'otp_number' =>  $otp,
+                        ]
+                );
 
                 User::where('id', $user->id)->update(['forgot_pass_otp' => $otp]);  
 
