@@ -76,45 +76,34 @@ public $failureStatus = false;
                     $msg = Auth::user()->fullname . ' Login successfully';                   
                 }
 
-                if(!empty($user->profile_image)){
-                    $img = url('public/uploads/profile_image').'/'.$user->profile_image;
-                }else{
-                    $img = url('resources/assets/images/blank_user.jpg');
-                }
-
-                if(!empty($user->cover_image)){
-                    $cover_img = url('public/uploads/cover_image').'/'.$user->cover_image;
-                }else{
-                    $cover_img = url('resources/assets/images/blank_image.jpg');
-                }
                 
                 return response()->json([
                         'status'=>$status, 
-                        'msg' => $msg, 
+                        'msg' => $msg,
+                        'user_status'       => $user->user_status, 
                         'response' => 
                             [
                                 'user_id'           => $user->id,
                                 'fullname'          => $user->fullname,
                                 'username'          => $user->username,
                                 'email'             => $user->email,
-                                'user_mobile'       => $user->user_mob,
+                                'mobile'            => $user->user_mob,
                                 'gender'            => $user->user_gender,
-                                'dob'               => $user->dob,
+                                'dob'               => !empty($user->dob)? $user->dob:'',
                                 'user_city'         => $user->user_city,
                                 'address'      => $user->user_address,
-                                'user_status'       => $user->user_status,
-                                'profile_image'       => $img,
-                                'cover_image'       => $cover_img,
-                                'works_at'   => $user->works_at,
-                                'study_at'   => $user->study_at,
-                                'relation_status' => $user->relation_status,
-                                'languages_known' => $user->languages_known,
-                                'bio'             => $user->bio,
+                                'profile_image'       => $user->profile_image,
+                                'cover_image'       => $user->cover_image,
+                                'works_at'   => !empty($user->works_at)? $user->works_at:'',
+                                'study_at'   => !empty($user->study_at)? $user->study_at:'',
+                                'relation_status' => !empty($user->relation_status)? $user->relation_status:'',
+                                'languages_known' => !empty($user->languages_known)? $user->languages_known:'',
+                                'bio'             => !empty($user->bio)? $user->bio:'',
                                 //'user_otp'       => $user->user_otp,
-                                'oauth_provider'          => $user->oauth_provider,
-                                'devicetype'       => $user->devicetype,
-                                'deviceid'       => $user->deviceid,
-                                'api_token'      => $user->api_token,
+                                'oauth_provider'          => !empty($user->oauth_provider)? $user->oauth_provider:'',
+                                'devicetype'       => !empty($user->devicetype)? $user->devicetype:'',
+                                'deviceid'       => !empty($user->deviceid) ?$user->deviceid:'',
+                                'api_token'      => !empty($user->api_token)? $user->api_token:'',
                                 
                             ]
                     ]);
@@ -134,7 +123,7 @@ public $failureStatus = false;
     * 
     * @return \Illuminate\Http\Response 
     */ 
-    public function register(Request $request) 
+    public function userregister(Request $request) 
     {   
         $validator = Validator::make($request->all(), [ 
             'fullname'  => 'required', 
@@ -218,25 +207,29 @@ public $failureStatus = false;
 
         $user->user_gender           = $forminput['gender'];
 
-        $user->dob    = $forminput['date_of_birth'];
+        $user->dob    =         $forminput['date_of_birth'];
         $user->user_address    = $forminput['address'];
-        $user->profile_image      = $name;
+        $user->profile_image      = !empty($name)? url('public/uploads/profile_image/').'/'.$name :url('resources/assets/images/blank_user.jpg');;
+
+        $user->cover_image      =  url('resources/assets/images/blank_image.jpg');
         $user->user_status      = 0;
         $user->user_role        = 2;
         $user->user_otp         = $otp;
         $user->created_at       = Date('Y-m-d H:i:s');
-        
-        $user->devicetype      = isset($forminput['devicetype'])?$forminput['devicetype']:'';
+        $user->oauth_provider    = '';
+        $user->user_city         = '';
+        $user->oauth_id          = '';
+        $user->works_at         = '';
+        $user->study_at            = ''; 
+        $user->relation_status  = '';
+        $user->languages_known   = '';
+        $user->bio             = '';
 
-        $user->deviceid      = isset($forminput['deviceid'])?$forminput['deviceid']:'';
+        $user->devicetype      = !empty($forminput['devicetype'])?$forminput['devicetype']:'';
 
-        $user->api_token      = isset($forminput['api_token'])?$forminput['api_token']:'';
+        $user->deviceid      = !empty($forminput['deviceid'])?$forminput['deviceid']:'';
 
-        if(!empty($user->cover_image)){
-            $cover_img = url('public/uploads/cover_image').'/'.$user->cover_image;
-        }else{
-            $cover_img = url('resources/assets/images/blank_image.jpg');
-        }
+        $user->api_token      = !empty($forminput['api_token'])?$forminput['api_token']:'';
 
         if($user->save()){
 
@@ -270,23 +263,45 @@ public $failureStatus = false;
                 [
                     'status'=>$this->successStatus, 
                     'msg' => 'Registration successfully, please check your Inbox to verify your account',
+                    'user_status'       => $user->user_status,
                     'response'=>
                         [    
-                            'user_id'           => $user->id,
-                            'username'              => $user->username,
-                            'fullname'              => $user->fullname,
-                            'email'             => $user->email,
-                            'address'             => $user->user_address,
-                            'profile_image'       => !empty($name)?url('public/uploads/profile_image').'/'.$name:url('resources/assets/images/blank_user.jpg'),
-                            'cover_image'       => $cover_img,
-                            'mobile'            => $user->user_mob,
-                            'gender'            => $user->user_gender,
-                            'date_of_birth'     => $user->dob,
-                            'user_status'       => $user->user_status,
-                            'oauth_provider '   => $user->oauth_provider ,
-                            'devicetype'       => $user->devicetype,
-                            'deviceid'         => $user->deviceid,
-                            'api_token'        => $user->api_token,
+                            // 'user_id'           => $user->id,
+                            // 'username'              => $user->username,
+                            // 'fullname'              => $user->fullname,
+                            // 'email'             => $user->email,
+                            // 'address'             => $user->user_address,
+                            // 'profile_image'       => $user->profile_image,
+                            // 'cover_image'       => $user->cover_image,
+                            // 'mobile'            => $user->user_mob,
+                            // 'gender'            => $user->user_gender,
+                            // 'date_of_birth'     => !empty($user->dob)? $user->dob:'',
+                            // 'oauth_provider'   => !empty($user->oauth_provider)?$user->oauth_provider:'' ,
+                            
+                            // 'devicetype'       => !empty($user->devicetype)? $user->devicetype:'',
+                            //     'deviceid'       => !empty($user->deviceid) ?$user->deviceid:'',
+                            //     'api_token'      => !empty($user->api_token)? $user->api_token:'',
+                             'user_id'           => $user->id,
+                                'fullname'          => $user->fullname,
+                                'username'          => $user->username,
+                                'email'             => $user->email,
+                                'mobile'            => $user->user_mob,
+                                'gender'            => $user->user_gender,
+                                'dob'               => !empty($user->dob)? $user->dob:'',
+                                'user_city'         => $user->user_city,
+                                'address'      => $user->user_address,
+                                'profile_image'       => $user->profile_image,
+                                'cover_image'       => $user->cover_image,
+                                'works_at'   => !empty($user->works_at)? $user->works_at:'',
+                                'study_at'   => !empty($user->study_at)? $user->study_at:'',
+                                'relation_status' => !empty($user->relation_status)? $user->relation_status:'',
+                                'languages_known' => !empty($user->languages_known)? $user->languages_known:'',
+                                'bio'             => !empty($user->bio)? $user->bio:'',
+                                //'user_otp'       => $user->user_otp,
+                                'oauth_provider'          => !empty($user->oauth_provider)? $user->oauth_provider:'',
+                                'devicetype'       => !empty($user->devicetype)? $user->devicetype:'',
+                                'deviceid'       => !empty($user->deviceid) ?$user->deviceid:'',
+                                'api_token'      => !empty($user->api_token)? $user->api_token:'',
                         ]
                 ]
             ); 
@@ -403,7 +418,8 @@ public $failureStatus = false;
                 if($user->user_status == 1){
                     $user->forgot_pass_otp = null;
                     $user->save();
-                    return response()->json(['status'=>$this->successStatus, 'msg' => 'OTP verified, please update your new password', 'response'=>['user_id' => $user->id]]);
+                    return response()->json(['status'=>$this->successStatus, 'msg' => 'OTP verified, please update your new password', 'response'=>['user_id' => $user->id,
+                        'user_status' => $user->user_status]]);
                 }else{
                     return response()->json(['status'=>$this->failureStatus, 'msg' => 'Your account is not verified', 'response'=>['user_id' => $user->id]]); 
 
@@ -506,7 +522,7 @@ public $failureStatus = false;
             $otp =  rand(pow(10, $digits-1), pow(10, $digits)-1);
             $user = User::where('email', $forminput['email'])->first(); 
             if( !empty($user) ){
-                if($forminput['type'] == 0){           
+                if($forminput['type'] == 1){           
                     $user->user_otp   = $otp;
                 }else{
                     $user->forgot_pass_otp   = $otp;
@@ -540,10 +556,10 @@ public $failureStatus = false;
                                 'gender'            => $user->user_gender,
                                 'date_of_birth'     => $user->dob,
                                 'user_status'       => $user->user_status,
-                                'oauth_provider '   => $user->oauth_provider ,
-                                'devicetype'       => $user->devicetype,
-                                'deviceid'         => $user->deviceid,
-                                'api_token'        => $user->api_token,
+                                'oauth_provider '   => !empty($user->oauth_provider)?$user->oauth_provider:'' ,
+                                'devicetype'       => !empty($user->devicetype)? $user->devicetype:'',
+                                'deviceid'       => !empty($user->deviceid) ?$user->deviceid:'',
+                                'api_token'      => !empty($user->api_token)? $user->api_token:'',
                             ]   
                         ]); 
                     }else{
@@ -593,7 +609,7 @@ public $failureStatus = false;
         $user = User::where('id', $forminput['user_id'])->where('user_status',1)->first();
         if( !empty($user) ){            
             $name = '';
-            if ($request->hasFile('profile_image')) {            
+            if ($request->hasFile('profile_image')) {    
                 $image = $request->file('profile_image');
                 $name = time().'.'.$image->getClientOriginalExtension();
                 $destinationPath = public_path('/uploads/profile_image/');         
@@ -604,7 +620,7 @@ public $failureStatus = false;
             $cover_name = '';
             if ($request->hasFile('cover_image')) {            
                 $cover_image = $request->file('cover_image');
-                $cover_name = time().'.'.$image->getClientOriginalExtension();
+                $cover_name = time().'.'.$cover_image->getClientOriginalExtension();
                 $coverDestinationPath = public_path('/uploads/cover_image/');         
                 $coverImagePath = $coverDestinationPath. '/'.  $cover_name;
                 $cover_image->move($coverDestinationPath, $cover_name);
@@ -612,41 +628,32 @@ public $failureStatus = false;
 
             //$user->username             = $forminput['username'];
             $user->fullname             = $forminput['fullname'];
-            $user->user_gender      = isset($forminput['gender'])?$forminput['gender']:'';
-            $user->user_address      = isset($forminput['address'])?$forminput['address']:'';
+            $user->user_gender      = !empty($forminput['gender'])?$forminput['gender']:'';
+            $user->user_address      = !empty($forminput['address'])?$forminput['address']:'';
             
-            $user->works_at             = $forminput['works_at'];
-            $user->study_at             = $forminput['study_at'];
-            $user->relation_status             = $forminput['relation_status'];
-            $user->languages_known             = $forminput['languages_known'];
-            $user->bio             = $forminput['bio'];
+            $user->works_at             = !empty($forminput['works_at'])? $forminput['works_at']: $user->works_at;
+            $user->study_at             = !empty($forminput['study_at'])?$forminput['study_at']:$user->study_at;
+            $user->relation_status             = !empty($forminput['relation_status'])? $forminput['relation_status']:$user->relation_status;
+            $user->languages_known             = !empty($forminput['languages_known']) ?$forminput['languages_known']:$user->languages_known;
+            $user->bio             = !empty($forminput['bio'])? $forminput['bio']:$user->bio;
 
             $user->user_mob         = isset($forminput['mobile'])?$forminput['mobile']:$user->user_mob;
             $user->dob    = $forminput['date_of_birth'];
+            $user->updated_at    = date('Y-m-d H:i:s');
             
-            if(!empty($name)){
-                $user->profile_image  = $name;
+            if( !empty($name) ){
+                $user->profile_image  =  url('public/uploads/profile_image/').'/'.$name;
+            }else{
+                $user->profile_image  = url('resources/assets/images/blank_user.jpg');
             }
 
             if(!empty($cover_name)){
-                $user->cover_image  = $cover_name;
+                $user->cover_image  = url('public/uploads/cover_image/').'/'.$cover_name;
+            }else{
+                $user->cover_image  = url('resources/assets/images/blank_image.jpg');
             }
 
             if($user->save()){
-
-                $img = '';
-                if(!empty($user->profile_image)){
-                    $img = url('public/uploads/profile_image').'/'.$user->profile_image;
-                }else{
-                    $img = url('resources/assets/images/blank_user.jpg');
-                }
-
-                $cover_img = '';
-                if(!empty($user->cover_image)){
-                    $cover_img = url('public/uploads/cover_image').'/'.$user->profile_image;
-                }else{
-                    $cover_img = url('resources/assets/images/blank_image.jpg');
-                }
 
                 return response()->json(
                     [
@@ -658,19 +665,19 @@ public $failureStatus = false;
                             'fullname' => $user->fullname, 
                             'email' => $user->email, 
                             'mobile' => $user->user_mob,
-                            'profile_image' => $img,
-                            'cover_image' => $cover_img, 
+                            'profile_image' => $user->profile_image,
+                            'cover_image' => $user->cover_image, 
                             'gender' => $user->user_gender,   
                             'date_of_birth' => $user->dob,
                             'address' => $user->user_address, 
                             'email_verified' => $user->email_verified,
                             'user_status' => $user->user_status,
 
-                            'works_at'   => $user->works_at,
-                            'study_at'   => $user->study_at,
-                            'relation_status' => $user->relation_status,
-                            'languages_known' => $user->languages_known,
-                            'bio'             => $user->bio
+                            'works_at'   => !empty($user->works_at)?$user->works_at:'',
+                            'study_at'   => !empty($user->study_at)?$user->study_at:'',
+                            'relation_status' => !empty($user->relation_status)?$user->relation_status:'',
+                            'languages_known' => !empty($user->languages_known)?$user->languages_known:'',
+                            'bio'             => !empty($user->bio)?$user->bio:''
 
                         ]
                     ]                    
@@ -702,20 +709,7 @@ public $failureStatus = false;
         }
         $user = User::where('id', $request->user_id)->where('user_status', 1)->first();
         if(!empty($user) ){
-            $img = '';
-            if(!empty($user->profile_image)){
-                $img = url('public/uploads/profile_image').'/'.$user->profile_image;
-            }else{
-                $img = url('resources/assets/images/blank_user.jpg');
-            }
-
-            $cover_img = '';
-            if(!empty($user->cover_image)){
-                $cover_img = url('public/uploads/cover_image').'/'.$user->profile_image;
-            }else{
-                $cover_img = url('resources/assets/images/blank_image.jpg');
-            }
-
+            
             $detail = array(
                 'user_id'           => $user->id,
                 'username'          => $user->username,
@@ -723,21 +717,21 @@ public $failureStatus = false;
                 'email'             => $user->email,
                 'mobile'            => $user->user_mob,
                 'gender'            => $user->user_gender,
-                'profile_image'     => $img,
-                'cover_image'       => $cover_img,
-                'works_at'   => $user->works_at,
-                'study_at'   => $user->study_at,
-                'relation_status' => $user->relation_status,
-                'languages_known' => $user->languages_known,
-                'bio'             => $user->bio, 
+                'profile_image'     => $user->profile_image,
+                'cover_image'       => $user->cover_image,
+                
+                'works_at'   => !empty($user->works_at)?$user->works_at:'',
+                'study_at'   => !empty($user->study_at)?$user->study_at:'',
+                'relation_status' => !empty($user->relation_status)?$user->relation_status:'',
+                'languages_known' => !empty($user->languages_known)?$user->languages_known:'',
+                'bio'             => !empty($user->bio)?$user->bio:'', 
                 'date_of_birth'     => $user->dob,
                 'email_verified'   => $user->email_verified,
                 'user_status'       => $user->user_status,
-                'oauth_provider'   => $user->oauth_provider,
-                'devicetype'       => $user->devicetype,
-                'deviceid'       => $user->deviceid,
-                'api_token'      => $user->api_token,
-
+                'oauth_provider'   => !empty( $user->oauth_provider )?$user->oauth_provider:'',
+                'devicetype'       => !empty($user->devicetype)? $user->devicetype:'',
+                'deviceid'       => !empty($user->deviceid) ?$user->deviceid:'',
+                'api_token'      => !empty($user->api_token)? $user->api_token:'',
             );
             return response()->json([
                 'status'=>$this->successStatus, 
@@ -811,5 +805,172 @@ public $failureStatus = false;
         }else{
             return response()->json(['status'=>$this->failureStatus, 'msg' => 'Something went wrong']); 
         }
-    }     
+    }
+
+    /** 
+     * global search user api 
+     * 
+     * @return \Illuminate\Http\Response 
+     */ 
+    public function searchuser(Request $request) {
+
+        $validator = Validator::make($request->all(), [ 
+            'search_text' => 'required' 
+        ]);
+        if ($validator->fails()) {
+            $messages = $validator->messages();
+            foreach ($messages->all() as $message)
+            {   
+                return response()->json(['status'=>$this->failureStatus,'msg'=>$message]);            
+            }
+        }
+        $searchusers = User::where('fullname', 'like', '%' . $request->search_text . '%')->where('user_status', 1)->get();
+
+
+        if( sizeof($searchusers) ){
+            return response()->json(['status'=>$this->successStatus, 'msg' => 'List successfully', 'response'=>['users' => $searchusers ]]);
+            
+        }else{
+            return response()->json(['status'=>$this->failureStatus, 'msg' => 'No user found']); 
+        }
+    }
+
+    /** 
+    * get users list api 
+    * 
+    * @return \Illuminate\Http\Response 
+    */ 
+    public function getuserlist(Request $request){
+        
+
+        $usersList =  DB::table('users')
+        ->select('users.id', 'users.fullname', 'users.email', 'users.user_address', 'users.profile_image', 'users.cover_image', 'users.user_mob', 'users.user_gender', 'users.dob', 'users.user_status', 'users.oauth_provider', 'users.devicetype', 'users.deviceid', 'users.api_token')
+        ->where('users.user_status', 1)
+        ->get();
+
+        if( sizeof($usersList) ){
+            return response()->json(['status'=>$this->successStatus, 'msg' => 'List successfully', 'response'=>['users' => $usersList ]]);
+            
+        }else{
+            return response()->json(['status'=>$this->failureStatus, 'msg' => 'No users found']); 
+        }
+    }
+
+    /** 
+    * get block users list api 
+    * 
+    * @return \Illuminate\Http\Response 
+    */ 
+    public function getblockuserlist(Request $request){
+        $forminput =  $request->all();
+        $validator = Validator::make($request->all(), [ 
+                'user_id'  => 'required',
+            ],
+            [   
+                'user_id.required'     => 'required user_id',
+            ]
+        );
+        
+        if ($validator->fails()) { 
+            $messages = $validator->messages();
+            foreach ($messages->all() as $message)
+            {   
+                return response()->json(['status'=>$this->failureStatus,'msg'=>$message]);            
+            }            
+        }
+
+        $blcokUsersList =  DB::table('block_user')
+        ->select('block_user.block_user_id', 'users.fullname', 'users.email', 'users.user_address', 'users.profile_image', 'users.cover_image', 'users.user_mob', 'users.user_gender', 'users.dob', 'users.user_status', 'users.oauth_provider', 'users.devicetype', 'users.deviceid', 'users.api_token')
+        ->join('users','users.id','=','block_user.block_user_id')
+        //->where('users.user_status', 1)
+        ->where('block_user.block_status', 1)
+        ->where('block_user.user_id', $request->user_id)
+        ->get();
+
+        if( sizeof($blcokUsersList) ){
+            return response()->json(['status'=>$this->successStatus, 'msg' => 'List successfully', 'response'=>['users' => $blcokUsersList ]]);
+            
+        }else{
+            return response()->json(['status'=>$this->failureStatus, 'msg' => 'No users found']); 
+        }
+    }
+
+    /** 
+     * global private dob api 
+     * 
+     * @return \Illuminate\Http\Response 
+     */ 
+    public function privatedob(Request $request) {
+
+        $validator = Validator::make($request->all(), [ 
+                'user_id'  => 'required',
+                'is_private'  => 'required'
+            ],
+            [   
+                'user_id.required'     => 'required user_id',
+                'is_private.required'     => 'required is_private'
+            ]
+        );
+
+        if ($validator->fails()) {
+            $messages = $validator->messages();
+            foreach ($messages->all() as $message)
+            {   
+                return response()->json(['status'=>$this->failureStatus,'msg'=>$message]);            
+            }
+        }
+        
+        $check = User::where('id', $request->user_id)->update(['is_private_dob' => $request->is_private]); 
+
+        if( $check ){
+            return response()->json(['status'=>$this->successStatus, 'msg' => 'Updated successfully', 'response'=>['user_id' => $request->user_id
+                ]]);
+            
+        }else{
+            return response()->json(['status'=>$this->failureStatus, 'msg' => 'Something went wrong']); 
+        }
+    }
+
+    /** 
+     * check user block status api 
+     * 
+     * @return \Illuminate\Http\Response 
+     */ 
+    public function checkuserblockstatus(Request $request) {
+
+        $validator = Validator::make($request->all(), [ 
+                'user_id'  => 'required',
+                'block_user_id'  => 'required'
+            ],
+            [   
+                'user_id.required'     => 'required user_id',
+                'block_user_id.required'     => 'required block_user_id'
+            ]
+        );
+
+        if ($validator->fails()) {
+            $messages = $validator->messages();
+            foreach ($messages->all() as $message)
+            {   
+                return response()->json(['status'=>$this->failureStatus,'msg'=>$message]);            
+            }
+        }
+        
+        $status_check = DB::table('block_user')->where('user_id', $request->user_id)->where('block_user_id', $request->block_user_id)->first(); 
+
+        $response = array();
+        if( $status_check ){
+            $response['block_status'] = $status_check->block_status;
+        }
+
+        if( sizeof($response) ){
+            return response()->json(['status'=>$this->successStatus, 'msg' => 'Details fetched successfully', 'response'=>[ $response
+                ]]);
+            
+        }else{
+            return response()->json(['status'=>$this->failureStatus, 'msg' => 'No details found']); 
+        }
+    }
+
+     
 }
